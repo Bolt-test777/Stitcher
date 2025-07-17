@@ -9,6 +9,7 @@ from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPoint, QRect, QThread, QObject
 from PyQt6.QtGui import (QPainter, QPixmap, QImage, QPen, QBrush, QColor, 
                         QMouseEvent, QWheelEvent, QPaintEvent, QResizeEvent, QTransform)
 from PyQt6.QtOpenGLWidgets import QOpenGLWidget
+from PyQt6.QtCore import QPointF
 import cv2
 
 from ..core.fragment import Fragment
@@ -388,9 +389,8 @@ class CanvasWidget(QWidget):
         if fragment.opacity < 1.0:
             painter.setOpacity(fragment.opacity)
             
-        # Draw the pixmap with precise positioning
-        # Use floating point coordinates for better precision
-        painter.drawPixmap(fragment.x, fragment.y, pixmap)
+        # Draw the pixmap with precise positioning using QPointF for float coordinates
+        painter.drawPixmap(QPointF(fragment.x, fragment.y), pixmap)
         
         # Reset opacity
         if fragment.opacity < 1.0:
