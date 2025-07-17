@@ -101,14 +101,9 @@ class FragmentManager(QObject):
         """Set fragment position"""
         fragment = self._fragments.get(fragment_id)
         if fragment:
-            # Ensure positions are stored as floats with proper precision
-            old_x, old_y = fragment.x, fragment.y
-            fragment.x = round(float(x), 1)  # Use 1 decimal place for better precision
-            fragment.y = round(float(y), 1)
-            
-            # Debug output
-            if abs(old_x - fragment.x) > 0.1 or abs(old_y - fragment.y) > 0.1:
-                print(f"Fragment {fragment.name} position changed: ({old_x}, {old_y}) -> ({fragment.x}, {fragment.y})")
+            # Store positions as floats without excessive rounding
+            fragment.x = float(x)
+            fragment.y = float(y)
             
             self.fragments_changed.emit()
     
@@ -116,12 +111,8 @@ class FragmentManager(QObject):
         """Translate fragment by offset"""
         fragment = self._fragments.get(fragment_id)
         if fragment:
-            old_x, old_y = fragment.x, fragment.y
-            fragment.x = round(fragment.x + float(dx), 1)
-            fragment.y = round(fragment.y + float(dy), 1)
-            
-            # Debug output
-            print(f"Translating fragment {fragment.name}: ({old_x}, {old_y}) + ({dx}, {dy}) = ({fragment.x}, {fragment.y})")
+            fragment.x = fragment.x + float(dx)
+            fragment.y = fragment.y + float(dy)
             
             self.fragments_changed.emit()
     
@@ -164,8 +155,8 @@ class FragmentManager(QObject):
                 fragment.rotation = float(rotation) % 360.0
                 transform_changed = True
             if translation is not None:
-                fragment.x = round(float(translation[0]), 2)
-                fragment.y = round(float(translation[1]), 2)
+                fragment.x = float(translation[0])
+                fragment.y = float(translation[1])
             if flip_horizontal is not None:
                 fragment.flip_horizontal = flip_horizontal
                 transform_changed = True

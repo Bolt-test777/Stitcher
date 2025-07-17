@@ -153,33 +153,39 @@ class CanvasWidget(QWidget):
             self.fragment_pixmaps.pop(fragment_id, None)
             self.fragment_zoom_cache.pop(fragment_id, None)
             
-        # Check for position or transform changes
+        # Always update fragments and check for changes
         for fragment in fragments:
             old_fragment = next((f for f in self.fragments if f.id == fragment.id), None)
             
-            # Mark as dirty if new, cache invalid, or position/transform changed
-            needs_update = (
-                fragment.id not in old_fragment_ids or 
-                not fragment.cache_valid or 
-                fragment.id in self.dirty_fragments
-            )
+            # Always mark as dirty if fragment is new or cache is invalid
+            needs_update = (fragment.id not in old_fragment_ids or not fragment.cache_valid)
             
-            # Check for position or transform changes
+            # Check for any changes that require re-rendering
             if old_fragment:
-                position_changed = (
-                    abs(old_fragment.x - fragment.x) > 0.1 or
-                    abs(old_fragment.y - fragment.y) > 0.1 or
-                    abs(old_fragment.rotation - fragment.rotation) > 0.1 or
+                # Check for transform changes (these affect the image itself)
+                transform_changed = (
+                    abs(old_fragment.rotation - fragment.rotation) > 0.01 or
                     old_fragment.flip_horizontal != fragment.flip_horizontal or
-                    old_fragment.flip_vertical != fragment.flip_vertical or
-                    old_fragment.visible != fragment.visible
+                    old_fragment.flip_vertical != fragment.flip_vertical
                 )
-                if position_changed:
+                
+                # Check for position changes (these don't affect the image, just placement)
+                position_changed = (
+                    abs(old_fragment.x - fragment.x) > 0.01 or
+                    abs(old_fragment.y - fragment.y) > 0.01
+                )
+                
+                # Check for visibility changes
+                visibility_changed = old_fragment.visible != fragment.visible
+                
+                if transform_changed or visibility_changed:
                     needs_update = True
+                elif position_changed:
+                    # Position changes don't require re-rendering, just re-display
+                    pass
             
             if needs_update:
                 self.dirty_fragments.add(fragment.id)
-                # Remove old cached pixmap to force re-render
                 self.fragment_pixmaps.pop(fragment.id, None)
                 self.fragment_zoom_cache.pop(fragment.id, None)
                 
@@ -231,24 +237,15 @@ class CanvasWidget(QWidget):
         if transformed_image is None:
             return
             
-        # Always re-render if fragment is dirty or zoom changed significantly
-        current_zoom_level = self.get_zoom_level()
-        cached_zoom = self.fragment_zoom_cache.get(fragment.id, -1)
-        
-        # Only use cache if zoom level is very close and fragment is clean
-        if (fragment.id in self.fragment_pixmaps and 
-            abs(current_zoom_level - cached_zoom) < 0.05 and
-            fragment.id not in self.dirty_fragments):
-            return  # Use cached version
-            
-        # Apply level-of-detail
-        render_image = self.apply_lod(transformed_image, self.zoom)
+        # Don't apply LOD - it causes positioning issues
+        # Use the full resolution transformed image
+        render_image = transformed_image
         
         # Convert to QPixmap efficiently
         pixmap = self.numpy_to_pixmap(render_image)
         if pixmap:
             self.fragment_pixmaps[fragment.id] = pixmap
-            self.fragment_zoom_cache[fragment.id] = current_zoom_level
+            self.fragment_zoom_cache[fragment.id] = self.zoom
             
     def apply_lod(self, image: np.ndarray, zoom: float) -> np.ndarray:
         """Apply level-of-detail scaling"""
@@ -441,19 +438,19 @@ class CanvasWidget(QWidget):
         if self.is_dragging_fragment and self.dragged_fragment_id:
             # Move fragment
             world_pos = self.screen_to_world(event.pos())
-            new_x = float(world_pos.x() - self.drag_offset.x())
-            new_y = float(world_pos.y() - self.drag_offset.y())
+            new_x = world_pos.x() - self.drag_offset.x()
+            new_y = world_pos.y() - self.drag_offset.y()
             
             self.fragment_moved.emit(self.dragged_fragment_id, new_x, new_y)
-            self.schedule_render(fast=True)
+            self.update()  # Just update display, don't re-render
             
         elif self.is_panning:
             # Pan viewport
             delta = event.pos() - self.last_mouse_pos
-            self.pan_x += float(delta.x()) / self.zoom
-            self.pan_y += float(delta.y()) / self.zoom
+            self.pan_x += delta.x() / self.zoom
+            self.pan_y += delta.y() / self.zoom
             self.viewport_changed.emit(self.zoom, self.pan_x, self.pan_y)
-            self.update()  # Fast update for panning
+            self.update()
             
         self.last_mouse_pos = event.pos()
         
@@ -473,22 +470,15 @@ class CanvasWidget(QWidget):
         new_zoom = np.clip(self.zoom * zoom_factor, self.min_zoom, self.max_zoom)
         
         if new_zoom != self.zoom:
-            # Update zoom
-            old_zoom_level = self.get_zoom_level()
             self.zoom = new_zoom
-            new_zoom_level = self.get_zoom_level()
             
             # Adjust pan to keep mouse position fixed
             mouse_world_after = self.screen_to_world(event.position().toPoint())
             self.pan_x += float(mouse_world_before.x() - mouse_world_after.x())
             self.pan_y += float(mouse_world_before.y() - mouse_world_after.y())
             
-            # Mark all fragments dirty when zoom changes significantly
-            if abs(old_zoom_level - new_zoom_level) > 0.05:
-                self.dirty_fragments.update(f.id for f in self.fragments if f.visible)
-                self.schedule_render()
-            else:
-                self.update()  # Just redraw existing pixmaps
+            # Just update the display - don't re-render fragments for zoom changes
+            self.update()
             
             self.viewport_changed.emit(self.zoom, self.pan_x, self.pan_y)
             
@@ -499,15 +489,15 @@ class CanvasWidget(QWidget):
         
     def screen_to_world(self, screen_pos: QPoint) -> QPoint:
         """Convert screen coordinates to world coordinates"""
-        world_x = (float(screen_pos.x()) / self.zoom) - self.pan_x
-        world_y = (float(screen_pos.y()) / self.zoom) - self.pan_y
-        return QPoint(int(round(world_x)), int(round(world_y)))
+        world_x = (screen_pos.x() / self.zoom) - self.pan_x
+        world_y = (screen_pos.y() / self.zoom) - self.pan_y
+        return QPoint(int(world_x), int(world_y))
         
     def world_to_screen(self, world_pos: QPoint) -> QPoint:
         """Convert world coordinates to screen coordinates"""
-        screen_x = (float(world_pos.x()) + self.pan_x) * self.zoom
-        screen_y = (float(world_pos.y()) + self.pan_y) * self.zoom
-        return QPoint(int(round(screen_x)), int(round(screen_y)))
+        screen_x = (world_pos.x() + self.pan_x) * self.zoom
+        screen_y = (world_pos.y() + self.pan_y) * self.zoom
+        return QPoint(int(screen_x), int(screen_y))
         
     def get_fragment_at_position(self, x: float, y: float) -> Optional[Fragment]:
         """Get the topmost fragment at the given position"""
@@ -555,11 +545,8 @@ class CanvasWidget(QWidget):
         self.pan_x = (widget_width / 2 / self.zoom) - content_center_x
         self.pan_y = (widget_height / 2 / self.zoom) - content_center_y
         
-        # Mark all fragments as dirty for new zoom level
-        self.dirty_fragments.update(f.id for f in self.fragments if f.visible)
-        
         self.viewport_changed.emit(self.zoom, self.pan_x, self.pan_y)
-        self.schedule_render()
+        self.update()
         
     def zoom_to_100(self):
         """Reset zoom to 100%"""
@@ -567,11 +554,8 @@ class CanvasWidget(QWidget):
         self.pan_x = 0.0
         self.pan_y = 0.0
         
-        # Mark all fragments as dirty for new zoom level
-        self.dirty_fragments.update(f.id for f in self.fragments if f.visible)
-        
         self.viewport_changed.emit(self.zoom, self.pan_x, self.pan_y)
-        self.schedule_render()
+        self.update()
         
     def invalidate_fragment(self, fragment_id: str):
         """Mark a fragment as needing re-rendering"""
