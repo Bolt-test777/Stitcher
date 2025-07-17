@@ -483,6 +483,13 @@ class CanvasWidget(QWidget):
             
             self.viewport_changed.emit(self.zoom, self.pan_x, self.pan_y)
             
+    def keyPressEvent(self, event: QKeyEvent):
+        """Handle key press events"""
+        if event.key() == Qt.Key.Key_Delete and self.selected_fragment_id:
+            self.delete_requested.emit(self.selected_fragment_id)
+        else:
+            super().keyPressEvent(event)
+        
     def resizeEvent(self, event: QResizeEvent):
         """Handle resize events"""
         super().resizeEvent(event)

@@ -105,6 +105,7 @@ class MainWindow(QMainWindow):
         # Canvas connections
         self.canvas_widget.fragment_selected.connect(self.select_fragment)
         self.canvas_widget.fragment_moved.connect(self.update_fragment_position)
+        self.canvas_widget.delete_requested.connect(self.delete_fragment)
         
         # Fragment manager connections
         self.fragment_manager.fragments_changed.connect(self.update_ui)
