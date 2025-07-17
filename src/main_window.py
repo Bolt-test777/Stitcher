@@ -280,6 +280,12 @@ class MainWindow(QMainWindow):
         # Ensure position is properly rounded to avoid floating point precision issues
         x = round(float(x), 2)
         y = round(float(y), 2)
+        
+        # Debug output
+        fragment = self.fragment_manager.get_fragment(fragment_id)
+        if fragment:
+            print(f"Updating fragment {fragment.name} position: ({fragment.x}, {fragment.y}) -> ({x}, {y})")
+        
         self.fragment_manager.set_fragment_position(fragment_id, x, y)
         
     def perform_stitching(self):

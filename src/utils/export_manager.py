@@ -110,13 +110,19 @@ class ExportManager:
         if transformed_image is None:
             return
             
-        # Calculate position in composite
-        frag_x = int(fragment.x - offset_x)
-        frag_y = int(fragment.y - offset_y)
+        # Calculate position in composite with proper rounding
+        frag_x = int(round(fragment.x - offset_x))
+        frag_y = int(round(fragment.y - offset_y))
         
         # Get dimensions
         frag_h, frag_w = transformed_image.shape[:2]
         comp_h, comp_w = composite.shape[:2]
+        
+        # Debug output
+        print(f"Fragment {fragment.name}: position=({fragment.x}, {fragment.y}), "
+              f"offset=({offset_x}, {offset_y}), "
+              f"composite_pos=({frag_x}, {frag_y}), "
+              f"size=({frag_w}, {frag_h})")
         
         # Calculate intersection
         src_x1 = max(0, -frag_x)
@@ -131,7 +137,11 @@ class ExportManager:
         
         # Check overlap
         if src_x2 <= src_x1 or src_y2 <= src_y1:
+            print(f"Fragment {fragment.name}: No overlap, skipping")
             return
+            
+        print(f"Fragment {fragment.name}: src_region=({src_x1},{src_y1},{src_x2},{src_y2}), "
+              f"dst_region=({dst_x1},{dst_y1},{dst_x2},{dst_y2})")
             
         # Extract region
         fragment_region = transformed_image[src_y1:src_y2, src_x1:src_x2]

@@ -126,6 +126,9 @@ class Fragment:
             return (self.x, self.y, 0, 0)
             
         transformed_img = self.get_transformed_image()
+        if transformed_img is None:
+            return (self.x, self.y, 0, 0)
+            
         height, width = transformed_img.shape[:2]
         
         return (self.x, self.y, width, height)
