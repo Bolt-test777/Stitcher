@@ -117,6 +117,10 @@ class MainWindow(QMainWindow):
         selected_fragment = self.fragment_manager.get_selected_fragment()
         self.control_panel.set_selected_fragment(selected_fragment)
         
+        # Update toolbar with fragment count
+        fragment_count = len(self.fragment_manager.get_all_fragments())
+        self.toolbar.set_fragment_count(fragment_count)
+        
     def setup_menu_bar(self):
         """Setup the menu bar"""
         menubar = self.menuBar()
@@ -273,6 +277,9 @@ class MainWindow(QMainWindow):
         
     def update_fragment_position(self, fragment_id: str, x: float, y: float):
         """Update fragment position from canvas interaction"""
+        # Ensure position is properly rounded to avoid floating point precision issues
+        x = round(float(x), 2)
+        y = round(float(y), 2)
         self.fragment_manager.set_fragment_position(fragment_id, x, y)
         
     def perform_stitching(self):

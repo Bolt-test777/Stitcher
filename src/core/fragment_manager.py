@@ -101,16 +101,17 @@ class FragmentManager(QObject):
         """Set fragment position"""
         fragment = self._fragments.get(fragment_id)
         if fragment:
-            fragment.x = x
-            fragment.y = y
+            # Ensure positions are stored as floats with proper precision
+            fragment.x = round(float(x), 2)
+            fragment.y = round(float(y), 2)
             self.fragments_changed.emit()
     
     def translate_fragment(self, fragment_id: str, dx: float, dy: float):
         """Translate fragment by offset"""
         fragment = self._fragments.get(fragment_id)
         if fragment:
-            fragment.x += dx
-            fragment.y += dy
+            fragment.x = round(fragment.x + float(dx), 2)
+            fragment.y = round(fragment.y + float(dy), 2)
             self.fragments_changed.emit()
     
     def rotate_fragment(self, fragment_id: str, angle: int):
@@ -152,7 +153,8 @@ class FragmentManager(QObject):
                 fragment.rotation = float(rotation) % 360.0
                 transform_changed = True
             if translation is not None:
-                fragment.x, fragment.y = translation
+                fragment.x = round(float(translation[0]), 2)
+                fragment.y = round(float(translation[1]), 2)
             if flip_horizontal is not None:
                 fragment.flip_horizontal = flip_horizontal
                 transform_changed = True
