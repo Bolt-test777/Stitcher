@@ -7,7 +7,7 @@ from typing import List, Optional, Tuple, Dict
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPoint, QRect, QThread, QObject
 from PyQt6.QtGui import (QPainter, QPixmap, QImage, QPen, QBrush, QColor, 
-                        QMouseEvent, QWheelEvent, QPaintEvent, QResizeEvent, QTransform)
+                        QMouseEvent, QWheelEvent, QPaintEvent, QResizeEvent, QTransform, QKeyEvent)
 from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 from PyQt6.QtCore import QPointF
 import cv2
@@ -85,6 +85,7 @@ class CanvasWidget(QWidget):
     fragment_selected = pyqtSignal(str)  # fragment_id
     fragment_moved = pyqtSignal(str, float, float)  # fragment_id, x, y
     viewport_changed = pyqtSignal(float, float, float)  # zoom, pan_x, pan_y
+    delete_requested = pyqtSignal(str)  # fragment_id
     
     def __init__(self):
         super().__init__()

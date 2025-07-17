@@ -14,6 +14,7 @@ class ToolbarWidget(QWidget):
     export_requested = pyqtSignal()
     stitch_requested = pyqtSignal()
     reset_requested = pyqtSignal()
+    delete_requested = pyqtSignal()
     
     def __init__(self):
         super().__init__()
@@ -64,6 +65,13 @@ class ToolbarWidget(QWidget):
         self.reset_btn.setEnabled(False)
         layout.addWidget(self.reset_btn)
         
+        # Delete button
+        self.delete_btn = QPushButton("🗑️ Delete")
+        self.delete_btn.setToolTip("Delete selected fragment (Del)")
+        self.delete_btn.clicked.connect(self.delete_requested)
+        self.delete_btn.setEnabled(False)
+        layout.addWidget(self.delete_btn)
+        
         # Spacer
         spacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         layout.addItem(spacer)
@@ -80,11 +88,13 @@ class ToolbarWidget(QWidget):
             self.export_btn.setEnabled(False)
             self.stitch_btn.setEnabled(False)
             self.reset_btn.setEnabled(False)
+            self.delete_btn.setEnabled(False)
         else:
             self.status_label.setText(f"{count} fragment{'s' if count != 1 else ''} loaded")
             self.export_btn.setEnabled(True)
             self.stitch_btn.setEnabled(count >= 2)
             self.reset_btn.setEnabled(True)
+            self.delete_btn.setEnabled(True)
             
     def set_status(self, status: str):
         """Set the status message"""

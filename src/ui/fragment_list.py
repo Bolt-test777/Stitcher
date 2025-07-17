@@ -4,9 +4,9 @@ Fragment list widget for selection and management
 
 from typing import List, Optional
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QListWidget, QListWidgetItem,
-                            QHBoxLayout, QPushButton, QLabel, QCheckBox)
+                            QHBoxLayout, QPushButton, QLabel, QCheckBox, QMenu)
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor
+from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QAction
 
 from ..core.fragment import Fragment
 
@@ -14,6 +14,7 @@ class FragmentListItem(QWidget):
     """Custom widget for fragment list items"""
     
     visibility_changed = pyqtSignal(str, bool)  # fragment_id, visible
+    delete_requested = pyqtSignal(str)  # fragment_id
     
     def __init__(self, fragment: Fragment):
         super().__init__()
@@ -54,6 +55,26 @@ class FragmentListItem(QWidget):
         layout.addLayout(info_layout)
         layout.addStretch()
         
+        # Delete button
+        self.delete_btn = QPushButton("×")
+        self.delete_btn.setFixedSize(20, 20)
+        self.delete_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #d32f2f;
+                color: white;
+                border: none;
+                border-radius: 10px;
+                font-weight: bold;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #f44336;
+            }
+        """)
+        self.delete_btn.setToolTip("Delete fragment")
+        self.delete_btn.clicked.connect(self.on_delete_clicked)
+        layout.addWidget(self.delete_btn)
+        
     def update_thumbnail(self):
         """Update the thumbnail display"""
         # Create a simple colored rectangle as thumbnail
@@ -70,6 +91,11 @@ class FragmentListItem(QWidget):
     def on_visibility_changed(self, state):
         """Handle visibility checkbox changes"""
         visible = state == Qt.CheckState.Checked.value
+        self.visibility_changed.emit(self.fragment.id, visible)
+        
+    def on_delete_clicked(self):
+        """Handle delete button click"""
+        self.delete_requested.emit(self.fragment.id)
         
     def set_selected(self, selected: bool):
         """Set the selection state of this item"""
@@ -95,6 +121,7 @@ class FragmentListWidget(QWidget):
     
     fragment_selected = pyqtSignal(str)  # fragment_id
     fragment_visibility_changed = pyqtSignal(str, bool)  # fragment_id, visible
+    fragment_delete_requested = pyqtSignal(str)  # fragment_id
     
     def __init__(self):
         super().__init__()
@@ -125,6 +152,8 @@ class FragmentListWidget(QWidget):
         self.list_widget = QListWidget()
         self.list_widget.setAlternatingRowColors(True)
         self.list_widget.itemClicked.connect(self.on_item_clicked)
+        self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.list_widget.customContextMenuRequested.connect(self.show_context_menu)
         layout.addWidget(self.list_widget)
         
         # Controls
@@ -169,6 +198,7 @@ class FragmentListWidget(QWidget):
         # Create custom widget
         fragment_widget = FragmentListItem(fragment)
         fragment_widget.visibility_changed.connect(self.fragment_visibility_changed)
+        fragment_widget.delete_requested.connect(self.fragment_delete_requested)
         
         # Add to list
         self.list_widget.addItem(list_item)
@@ -179,6 +209,20 @@ class FragmentListWidget(QWidget):
         
         # Set item size
         list_item.setSizeHint(fragment_widget.sizeHint())
+        
+    def show_context_menu(self, position):
+        """Show context menu for fragment list"""
+        item = self.list_widget.itemAt(position)
+        if item:
+            fragment_id = item.data(Qt.ItemDataRole.UserRole)
+            if fragment_id:
+                menu = QMenu(self)
+                
+                delete_action = QAction("Delete Fragment", self)
+                delete_action.triggered.connect(lambda: self.fragment_delete_requested.emit(fragment_id))
+                menu.addAction(delete_action)
+                
+                menu.exec(self.list_widget.mapToGlobal(position))
         
     def set_selected_fragment(self, fragment_id: Optional[str]):
         """Set the selected fragment"""

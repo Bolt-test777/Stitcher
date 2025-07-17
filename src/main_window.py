@@ -91,10 +91,12 @@ class MainWindow(QMainWindow):
         self.toolbar.export_requested.connect(self.export_results)
         self.toolbar.stitch_requested.connect(self.perform_stitching)
         self.toolbar.reset_requested.connect(self.reset_fragments)
+        self.toolbar.delete_requested.connect(self.delete_selected_fragment)
         
         # Fragment list connections
         self.fragment_list.fragment_selected.connect(self.select_fragment)
         self.fragment_list.fragment_visibility_changed.connect(self.toggle_fragment_visibility)
+        self.fragment_list.fragment_delete_requested.connect(self.delete_fragment)
         
         # Control panel connections
         self.control_panel.transform_requested.connect(self.apply_transform)
@@ -159,6 +161,13 @@ class MainWindow(QMainWindow):
         reset_action.setShortcut(QKeySequence('Ctrl+R'))
         reset_action.triggered.connect(self.reset_fragments)
         edit_menu.addAction(reset_action)
+        
+        edit_menu.addSeparator()
+        
+        delete_action = QAction('&Delete Selected Fragment', self)
+        delete_action.setShortcut(QKeySequence.StandardKey.Delete)
+        delete_action.triggered.connect(self.delete_selected_fragment)
+        edit_menu.addAction(delete_action)
         
         # View menu
         view_menu = menubar.addMenu('&View')
@@ -249,6 +258,29 @@ class MainWindow(QMainWindow):
         """Toggle fragment visibility"""
         self.fragment_manager.set_fragment_visibility(fragment_id, visible)
         
+    def delete_fragment(self, fragment_id: str):
+        """Delete a fragment with confirmation"""
+        fragment = self.fragment_manager.get_fragment(fragment_id)
+        if not fragment:
+            return
+            
+        reply = QMessageBox.question(
+            self, "Delete Fragment", 
+            f"Are you sure you want to delete fragment '{fragment.name}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            self.fragment_manager.remove_fragment(fragment_id)
+            self.status_bar.showMessage(f"Fragment '{fragment.name}' deleted", 2000)
+            
+    def delete_selected_fragment(self):
+        """Delete the currently selected fragment"""
+        selected_id = self.fragment_manager.get_selected_fragment_id()
+        if selected_id:
+            self.delete_fragment(selected_id)
+        
     def apply_transform(self, fragment_id: str, transform_type: str, value=None):
         """Apply transformation to fragment"""
         fragment = self.fragment_manager.get_fragment(fragment_id)
@@ -270,6 +302,8 @@ class MainWindow(QMainWindow):
         elif transform_type == 'translate':
             dx, dy = value
             self.fragment_manager.translate_fragment(fragment_id, dx, dy)
+        elif transform_type == 'set_visibility':
+            self.fragment_manager.set_fragment_visibility(fragment_id, value)
             
     def reset_fragment_transform(self, fragment_id: str):
         """Reset fragment transformation"""

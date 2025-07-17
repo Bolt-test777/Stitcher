@@ -299,7 +299,7 @@ class ControlPanel(QWidget):
         """Handle visibility checkbox changes"""
         if self.current_fragment:
             visible = state == Qt.CheckState.Checked.value
-            self.current_fragment.visible = visible
+            self.transform_requested.emit(self.current_fragment.id, 'set_visibility', visible)
             
     def on_opacity_changed(self, value):
         """Handle opacity slider changes"""
