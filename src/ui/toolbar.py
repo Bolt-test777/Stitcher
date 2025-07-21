@@ -39,58 +39,6 @@ class ToolbarWidget(QWidget):
         separator0.setFrameShape(QFrame.Shape.VLine)
         layout.addWidget(separator0)
         
-        # Selection tools
-        self.selection_group = QButtonGroup(self)
-        
-        self.select_btn = QToolButton()
-        self.select_btn.setText("🖱️")
-        self.select_btn.setToolTip("Normal selection mode")
-        self.select_btn.setCheckable(True)
-        self.select_btn.setChecked(True)
-        self.selection_group.addButton(self.select_btn, 0)
-        layout.addWidget(self.select_btn)
-        
-        self.rect_select_btn = QToolButton()
-        self.rect_select_btn.setText("⬚")
-        self.rect_select_btn.setToolTip("Rectangle selection mode - drag to select multiple fragments")
-        self.rect_select_btn.setCheckable(True)
-        self.selection_group.addButton(self.rect_select_btn, 1)
-        layout.addWidget(self.rect_select_btn)
-        
-        # Connect selection mode signals
-        self.selection_group.idClicked.connect(self.on_selection_mode_changed)
-        
-        # Separator
-        separator1 = QFrame()
-        separator1.setFrameShape(QFrame.Shape.VLine)
-        layout.addWidget(separator1)
-        
-        # Selection tools
-        self.selection_group = QButtonGroup(self)
-        
-        self.select_btn = QToolButton()
-        self.select_btn.setText("🖱️")
-        self.select_btn.setToolTip("Normal selection mode")
-        self.select_btn.setCheckable(True)
-        self.select_btn.setChecked(True)
-        self.selection_group.addButton(self.select_btn, 0)
-        layout.addWidget(self.select_btn)
-        
-        self.rect_select_btn = QToolButton()
-        self.rect_select_btn.setText("⬚")
-        self.rect_select_btn.setToolTip("Rectangle selection mode - drag to select multiple fragments")
-        self.rect_select_btn.setCheckable(True)
-        self.selection_group.addButton(self.rect_select_btn, 1)
-        layout.addWidget(self.rect_select_btn)
-        
-        # Connect selection mode signals
-        self.selection_group.idClicked.connect(self.on_selection_mode_changed)
-        
-        # Separator
-        separator1 = QFrame()
-        separator1.setFrameShape(QFrame.Shape.VLine)
-        layout.addWidget(separator1)
-        
         # Export button
         self.export_btn = QPushButton("💾 Export")
         self.export_btn.setToolTip("Export composite image and metadata")
@@ -133,16 +81,6 @@ class ToolbarWidget(QWidget):
         self.status_label = QLabel("Ready")
         self.status_label.setStyleSheet("color: #4a90e2; font-weight: bold;")
         layout.addWidget(self.status_label)
-        
-    def on_selection_mode_changed(self, button_id: int):
-        """Handle selection mode changes"""
-        selection_mode = (button_id == 1)  # Rectangle selection is button 1
-        self.selection_mode_changed.emit(selection_mode)
-        
-    def on_selection_mode_changed(self, button_id: int):
-        """Handle selection mode changes"""
-        selection_mode = (button_id == 1)  # Rectangle selection is button 1
-        self.selection_mode_changed.emit(selection_mode)
         
     def set_fragment_count(self, count: int):
         """Update the fragment count display"""

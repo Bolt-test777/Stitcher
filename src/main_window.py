@@ -111,15 +111,6 @@ class MainWindow(QMainWindow):
         self.canvas_widget.group_transform_requested.connect(self.apply_group_transform)
         self.control_panel.group_transform_requested.connect(self.apply_group_transform)
         
-        # Toolbar connections for selection mode
-        self.toolbar.selection_mode_changed.connect(self.canvas_widget.set_selection_mode)
-        self.canvas_widget.group_selected.connect(self.on_group_selected)
-        self.canvas_widget.group_transform_requested.connect(self.apply_group_transform)
-        self.control_panel.group_transform_requested.connect(self.apply_group_transform)
-        
-        # Toolbar connections for selection mode
-        self.toolbar.selection_mode_changed.connect(self.canvas_widget.set_selection_mode)
-        
         # Fragment manager connections
         self.fragment_manager.fragments_changed.connect(self.update_ui)
         self.fragment_manager.fragments_changed.connect(self.on_fragments_changed)
@@ -207,10 +198,24 @@ class MainWindow(QMainWindow):
         # Tools menu
         tools_menu = menubar.addMenu('&Tools')
         
+        # Rectangle selection action
+        self.rect_select_action = QAction('&Rectangle Selection', self)
+        self.rect_select_action.setShortcut(QKeySequence('R'))
+        self.rect_select_action.setCheckable(True)
+        self.rect_select_action.triggered.connect(self.toggle_selection_mode)
+        tools_menu.addAction(self.rect_select_action)
+        
+        tools_menu.addSeparator()
+        
         stitch_action = QAction('&Rigid Stitching', self)
         stitch_action.setShortcut(QKeySequence('Ctrl+S'))
         stitch_action.triggered.connect(self.perform_stitching)
         tools_menu.addAction(stitch_action)
+        
+    def toggle_selection_mode(self):
+        """Toggle rectangle selection mode"""
+        selection_mode = self.rect_select_action.isChecked()
+        self.canvas_widget.set_selection_mode(selection_mode)
         
     def setup_status_bar(self):
         """Setup the status bar"""
@@ -326,6 +331,9 @@ class MainWindow(QMainWindow):
             self.fragment_manager.translate_fragment(fragment_id, dx, dy)
         elif transform_type == 'set_visibility':
             self.fragment_manager.set_fragment_visibility(fragment_id, value)
+            
+        # Force immediate canvas update
+        self.canvas_widget.update()
             
     def reset_fragment_transform(self, fragment_id: str):
         """Reset fragment transformation"""

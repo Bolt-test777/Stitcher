@@ -413,11 +413,17 @@ class ControlPanel(QWidget):
             self.group_transform_requested.emit(self.selected_fragment_ids, 'translate', (dx, dy))
         elif self.current_fragment:
             self.transform_requested.emit(self.current_fragment.id, 'translate', (dx, dy))
+        
+        # Force immediate update
+        self.update_controls()
             
     def on_center_clicked(self):
         """Handle center button click"""
         if self.current_fragment:  # Only works for individual fragments
             self.transform_requested.emit(self.current_fragment.id, 'translate', (0, 0))
+        
+        # Force immediate update
+        self.update_controls()
             
     def request_transform(self, transform_type: str, value=None):
         """Request a transformation for the current fragment (legacy method)"""
@@ -449,6 +455,9 @@ class ControlPanel(QWidget):
         if self.current_fragment:
             visible = state == Qt.CheckState.Checked.value
             self.transform_requested.emit(self.current_fragment.id, 'set_visibility', visible)
+        
+        # Force immediate update
+        self.update_controls()
             
     def on_opacity_changed(self, value):
         """Handle opacity slider changes"""
@@ -456,12 +465,18 @@ class ControlPanel(QWidget):
             opacity = value / 100.0
             self.current_fragment.opacity = opacity
             self.opacity_label.setText(f"{value}%")
+        
+        # Force immediate update
+        self.update_controls()
             
     def on_angle_changed(self):
         """Handle angle spinbox changes"""
         if self.current_fragment and not self.selected_fragment_ids:  # Only for individual fragments
             new_angle = self.angle_spinbox.value()
             self.request_transform('set_rotation', new_angle)
+        
+        # Force immediate update
+        self.update_controls()
             
     def on_translation_step_changed(self):
         """Handle translation step changes"""
