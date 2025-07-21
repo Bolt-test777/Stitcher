@@ -4,6 +4,7 @@ Main application window for Tissue Fragment Arrangement and Rigid Stitching UI
 
 import os
 import json
+import numpy as np
 from typing import Dict, List, Optional
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, 
                             QSplitter, QMenuBar, QStatusBar, QFileDialog, 
