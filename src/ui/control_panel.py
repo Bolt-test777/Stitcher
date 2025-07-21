@@ -55,10 +55,10 @@ class ControlPanel(QWidget):
         layout.addWidget(self.display_group)
         
         # Group operations (initially hidden)
-        self.group_group = QGroupBox("Group Operations")
-        self.setup_group_operations()
-        layout.addWidget(self.group_group)
-        self.group_group.setVisible(False)
+        self.group_info_widget = QWidget()
+        self.setup_group_info()
+        layout.addWidget(self.group_info_widget)
+        self.group_info_widget.setVisible(False)
         
         # Add stretch to push everything to top
         layout.addStretch()
@@ -87,13 +87,11 @@ class ControlPanel(QWidget):
         
         rotation_layout = QHBoxLayout()
         self.rotate_ccw_btn = QPushButton("↺ 90°")
-        self.rotate_ccw_btn.setToolTip("Rotate counter-clockwise")
-        self.rotate_ccw_btn.clicked.connect(lambda: self.request_transform('rotate_ccw'))
+        self.rotate_ccw_btn.clicked.connect(self.on_rotate_ccw_clicked)
         rotation_layout.addWidget(self.rotate_ccw_btn)
         
         self.rotate_cw_btn = QPushButton("↻ 90°")
-        self.rotate_cw_btn.setToolTip("Rotate clockwise")
-        self.rotate_cw_btn.clicked.connect(lambda: self.request_transform('rotate_cw'))
+        self.rotate_cw_btn.clicked.connect(self.on_rotate_cw_clicked)
         rotation_layout.addWidget(self.rotate_cw_btn)
         
         layout.addLayout(rotation_layout, 0, 1)
@@ -111,13 +109,11 @@ class ControlPanel(QWidget):
         
         # Quick angle buttons
         angle_45_btn = QPushButton("45°")
-        angle_45_btn.setToolTip("Rotate 45 degrees")
-        angle_45_btn.clicked.connect(lambda: self.request_transform('rotate_angle', 45))
+        angle_45_btn.clicked.connect(lambda: self.on_angle_button_clicked(45))
         angle_layout.addWidget(angle_45_btn)
         
         angle_neg45_btn = QPushButton("-45°")
-        angle_neg45_btn.setToolTip("Rotate -45 degrees")
-        angle_neg45_btn.clicked.connect(lambda: self.request_transform('rotate_angle', -45))
+        angle_neg45_btn.clicked.connect(lambda: self.on_angle_button_clicked(-45))
         angle_layout.addWidget(angle_neg45_btn)
         
         layout.addLayout(angle_layout, 1, 1)
@@ -127,13 +123,11 @@ class ControlPanel(QWidget):
         
         flip_layout = QHBoxLayout()
         self.flip_h_btn = QPushButton("↔ Horizontal")
-        self.flip_h_btn.setToolTip("Flip horizontally")
-        self.flip_h_btn.clicked.connect(lambda: self.request_transform('flip_horizontal'))
+        self.flip_h_btn.clicked.connect(self.on_flip_horizontal_clicked)
         flip_layout.addWidget(self.flip_h_btn)
         
         self.flip_v_btn = QPushButton("↕ Vertical")
-        self.flip_v_btn.setToolTip("Flip vertically")
-        self.flip_v_btn.clicked.connect(lambda: self.request_transform('flip_vertical'))
+        self.flip_v_btn.clicked.connect(self.on_flip_vertical_clicked)
         flip_layout.addWidget(self.flip_v_btn)
         
         layout.addLayout(flip_layout, 2, 1)
@@ -189,83 +183,39 @@ class ControlPanel(QWidget):
         
         # Up
         up_btn = QPushButton("↑")
-        up_btn.clicked.connect(lambda: self.request_transform('translate', (0, -self.translation_step)))
+        up_btn.clicked.connect(lambda: self.on_translate_clicked(0, -self.translation_step))
         translation_layout.addWidget(up_btn, 0, 1)
         
         # Left, Center, Right
         left_btn = QPushButton("←")
-        left_btn.clicked.connect(lambda: self.request_transform('translate', (-self.translation_step, 0)))
+        left_btn.clicked.connect(lambda: self.on_translate_clicked(-self.translation_step, 0))
         translation_layout.addWidget(left_btn, 1, 0)
         
         center_btn = QPushButton("⌂")
         center_btn.setToolTip("Center fragment")
-        center_btn.clicked.connect(lambda: self.request_transform('translate', (0, 0)))
+        center_btn.clicked.connect(self.on_center_clicked)
         translation_layout.addWidget(center_btn, 1, 1)
         
         right_btn = QPushButton("→")
-        right_btn.clicked.connect(lambda: self.request_transform('translate', (self.translation_step, 0)))
+        right_btn.clicked.connect(lambda: self.on_translate_clicked(self.translation_step, 0))
         translation_layout.addWidget(right_btn, 1, 2)
         
         # Down
         down_btn = QPushButton("↓")
-        down_btn.clicked.connect(lambda: self.request_transform('translate', (0, self.translation_step)))
+        down_btn.clicked.connect(lambda: self.on_translate_clicked(0, self.translation_step))
         translation_layout.addWidget(down_btn, 2, 1)
         
         layout.addLayout(translation_layout, 5, 0, 1, 2)
         
-    def setup_group_operations(self):
-        """Setup group operation controls"""
-        layout = QVBoxLayout(self.group_group)
+    def setup_group_info(self):
+        """Setup group information display"""
+        layout = QVBoxLayout(self.group_info_widget)
+        layout.setContentsMargins(0, 0, 0, 0)
         
         # Group info
         self.group_info_label = QLabel("0 fragments selected")
-        self.group_info_label.setStyleSheet("font-weight: bold; color: #ff8c00;")
+        self.group_info_label.setStyleSheet("font-weight: bold; color: #ff8c00; padding: 5px; background-color: #3d3d3d; border-radius: 3px;")
         layout.addWidget(self.group_info_label)
-        
-        # Group transformation controls
-        transform_layout = QGridLayout()
-        
-        # Group rotation
-        transform_layout.addWidget(QLabel("Rotate Group:"), 0, 0)
-        
-        group_rotation_layout = QHBoxLayout()
-        self.group_rotate_ccw_btn = QPushButton("↺ 90°")
-        self.group_rotate_ccw_btn.clicked.connect(lambda: self.request_group_transform('rotate_ccw'))
-        group_rotation_layout.addWidget(self.group_rotate_ccw_btn)
-        
-        self.group_rotate_cw_btn = QPushButton("↻ 90°")
-        self.group_rotate_cw_btn.clicked.connect(lambda: self.request_group_transform('rotate_cw'))
-        group_rotation_layout.addWidget(self.group_rotate_cw_btn)
-        
-        transform_layout.addLayout(group_rotation_layout, 0, 1)
-        
-        # Group translation
-        transform_layout.addWidget(QLabel("Move Group:"), 1, 0)
-        
-        group_translation_layout = QGridLayout()
-        
-        # Up
-        group_up_btn = QPushButton("↑")
-        group_up_btn.clicked.connect(lambda: self.request_group_transform('translate', (0, -self.translation_step)))
-        group_translation_layout.addWidget(group_up_btn, 0, 1)
-        
-        # Left, Right
-        group_left_btn = QPushButton("←")
-        group_left_btn.clicked.connect(lambda: self.request_group_transform('translate', (-self.translation_step, 0)))
-        group_translation_layout.addWidget(group_left_btn, 1, 0)
-        
-        group_right_btn = QPushButton("→")
-        group_right_btn.clicked.connect(lambda: self.request_group_transform('translate', (self.translation_step, 0)))
-        group_translation_layout.addWidget(group_right_btn, 1, 2)
-        
-        # Down
-        group_down_btn = QPushButton("↓")
-        group_down_btn.clicked.connect(lambda: self.request_group_transform('translate', (0, self.translation_step)))
-        group_translation_layout.addWidget(group_down_btn, 2, 1)
-        
-        transform_layout.addLayout(group_translation_layout, 1, 1)
-        
-        layout.addLayout(transform_layout)
         
         # Clear selection button
         self.clear_selection_btn = QPushButton("Clear Group Selection")
@@ -297,65 +247,6 @@ class ControlPanel(QWidget):
         
         layout.addLayout(opacity_layout)
         
-    def setup_group_operations(self):
-        """Setup group operation controls"""
-        layout = QVBoxLayout(self.group_group)
-        
-        # Group info
-        self.group_info_label = QLabel("0 fragments selected")
-        self.group_info_label.setStyleSheet("font-weight: bold; color: #ff8c00;")
-        layout.addWidget(self.group_info_label)
-        
-        # Group transformation controls
-        transform_layout = QGridLayout()
-        
-        # Group rotation
-        transform_layout.addWidget(QLabel("Rotate Group:"), 0, 0)
-        
-        group_rotation_layout = QHBoxLayout()
-        self.group_rotate_ccw_btn = QPushButton("↺ 90°")
-        self.group_rotate_ccw_btn.clicked.connect(lambda: self.request_group_transform('rotate_ccw'))
-        group_rotation_layout.addWidget(self.group_rotate_ccw_btn)
-        
-        self.group_rotate_cw_btn = QPushButton("↻ 90°")
-        self.group_rotate_cw_btn.clicked.connect(lambda: self.request_group_transform('rotate_cw'))
-        group_rotation_layout.addWidget(self.group_rotate_cw_btn)
-        
-        transform_layout.addLayout(group_rotation_layout, 0, 1)
-        
-        # Group translation
-        transform_layout.addWidget(QLabel("Move Group:"), 1, 0)
-        
-        group_translation_layout = QGridLayout()
-        
-        # Up
-        group_up_btn = QPushButton("↑")
-        group_up_btn.clicked.connect(lambda: self.request_group_transform('translate', (0, -self.translation_step)))
-        group_translation_layout.addWidget(group_up_btn, 0, 1)
-        
-        # Left, Right
-        group_left_btn = QPushButton("←")
-        group_left_btn.clicked.connect(lambda: self.request_group_transform('translate', (-self.translation_step, 0)))
-        group_translation_layout.addWidget(group_left_btn, 1, 0)
-        
-        group_right_btn = QPushButton("→")
-        group_right_btn.clicked.connect(lambda: self.request_group_transform('translate', (self.translation_step, 0)))
-        group_translation_layout.addWidget(group_right_btn, 1, 2)
-        
-        # Down
-        group_down_btn = QPushButton("↓")
-        group_down_btn.clicked.connect(lambda: self.request_group_transform('translate', (0, self.translation_step)))
-        group_translation_layout.addWidget(group_down_btn, 2, 1)
-        
-        transform_layout.addLayout(group_translation_layout, 1, 1)
-        
-        layout.addLayout(transform_layout)
-        
-        # Clear selection button
-        self.clear_selection_btn = QPushButton("Clear Group Selection")
-        self.clear_selection_btn.clicked.connect(self.clear_group_selection)
-        layout.addWidget(self.clear_selection_btn)
-        
     def set_selected_fragment(self, fragment: Optional[Fragment]):
         """Set the currently selected fragment"""
         self.current_fragment = fragment
@@ -371,81 +262,96 @@ class ControlPanel(QWidget):
         self.selected_fragment_ids.clear()
         self.update_group_controls()
         
-    def set_selected_fragments(self, fragment_ids: List[str]):
-        """Set the group selected fragments"""
-        self.selected_fragment_ids = fragment_ids
-        self.update_group_controls()
-        
-    def clear_group_selection(self):
-        """Clear group selection"""
-        self.selected_fragment_ids.clear()
-        self.update_group_controls()
-        
     def update_controls(self):
         """Update control states based on current fragment"""
         has_fragment = self.current_fragment is not None
+        has_group = len(self.selected_fragment_ids) > 0
         
-        # Enable/disable controls
-        self.transform_group.setEnabled(has_fragment)
-        self.position_group.setEnabled(has_fragment)
-        self.display_group.setEnabled(has_fragment)
+        # Enable/disable controls - enable if we have either individual fragment or group
+        self.transform_group.setEnabled(has_fragment or has_group)
+        self.position_group.setEnabled(has_fragment or has_group)
+        self.display_group.setEnabled(has_fragment and not has_group)  # Only for individual fragments
         
-        if not has_fragment:
+        # Update tooltips based on mode
+        if has_group:
+            self.rotate_ccw_btn.setToolTip("Rotate group counter-clockwise")
+            self.rotate_cw_btn.setToolTip("Rotate group clockwise")
+            self.flip_h_btn.setToolTip("Flip group horizontally")
+            self.flip_v_btn.setToolTip("Flip group vertically")
+        else:
+            self.rotate_ccw_btn.setToolTip("Rotate counter-clockwise")
+            self.rotate_cw_btn.setToolTip("Rotate clockwise")
+            self.flip_h_btn.setToolTip("Flip horizontally")
+            self.flip_v_btn.setToolTip("Flip vertically")
+        
+        if not has_fragment and not has_group:
             self.name_label.setText("No fragment selected")
             self.size_label.setText("Size: -")
             self.file_label.setText("File: -")
             return
             
-        fragment = self.current_fragment
-        
-        # Update info
-        self.name_label.setText(fragment.name or f"Fragment {fragment.id[:8]}")
-        self.size_label.setText(f"Size: {fragment.original_size[0]} × {fragment.original_size[1]}")
-        self.file_label.setText(f"File: {fragment.file_path}")
-        
-        # Update position controls (block signals to prevent recursion)
-        self.x_spinbox.blockSignals(True)
-        self.y_spinbox.blockSignals(True)
-        self.x_spinbox.setValue(fragment.x)
-        self.y_spinbox.setValue(fragment.y)
-        self.x_spinbox.blockSignals(False)
-        self.y_spinbox.blockSignals(False)
-        
-        # Update angle control
-        self.angle_spinbox.blockSignals(True)
-        self.angle_spinbox.setValue(fragment.rotation)
-        self.angle_spinbox.blockSignals(False)
-        
-        # Update display controls
-        self.visible_checkbox.blockSignals(True)
-        self.visible_checkbox.setChecked(fragment.visible)
-        self.visible_checkbox.blockSignals(False)
-        
-        self.opacity_slider.blockSignals(True)
-        self.opacity_slider.setValue(int(fragment.opacity * 100))
-        self.opacity_label.setText(f"{int(fragment.opacity * 100)}%")
-        self.opacity_slider.blockSignals(False)
-        
-        # Update transform button states
-        self.update_transform_button_states()
+        if has_group:
+            # Group mode - show group info
+            count = len(self.selected_fragment_ids)
+            self.name_label.setText(f"Group Selection ({count} fragments)")
+            self.size_label.setText("Size: Multiple")
+            self.file_label.setText("File: Multiple")
+            
+            # Disable individual controls that don't make sense for groups
+            self.x_spinbox.setEnabled(False)
+            self.y_spinbox.setEnabled(False)
+            self.angle_spinbox.setEnabled(False)
+        else:
+            # Individual fragment mode
+            fragment = self.current_fragment
+            
+            # Update info
+            self.name_label.setText(fragment.name or f"Fragment {fragment.id[:8]}")
+            self.size_label.setText(f"Size: {fragment.original_size[0]} × {fragment.original_size[1]}")
+            self.file_label.setText(f"File: {fragment.file_path}")
+            
+            # Enable individual controls
+            self.x_spinbox.setEnabled(True)
+            self.y_spinbox.setEnabled(True)
+            self.angle_spinbox.setEnabled(True)
+            
+            # Update position controls (block signals to prevent recursion)
+            self.x_spinbox.blockSignals(True)
+            self.y_spinbox.blockSignals(True)
+            self.x_spinbox.setValue(fragment.x)
+            self.y_spinbox.setValue(fragment.y)
+            self.x_spinbox.blockSignals(False)
+            self.y_spinbox.blockSignals(False)
+            
+            # Update angle control
+            self.angle_spinbox.blockSignals(True)
+            self.angle_spinbox.setValue(fragment.rotation)
+            self.angle_spinbox.blockSignals(False)
+            
+            # Update display controls
+            self.visible_checkbox.blockSignals(True)
+            self.visible_checkbox.setChecked(fragment.visible)
+            self.visible_checkbox.blockSignals(False)
+            
+            self.opacity_slider.blockSignals(True)
+            self.opacity_slider.setValue(int(fragment.opacity * 100))
+            self.opacity_label.setText(f"{int(fragment.opacity * 100)}%")
+            self.opacity_slider.blockSignals(False)
+            
+            # Update transform button states
+            self.update_transform_button_states()
         
     def update_group_controls(self):
         """Update group operation controls"""
         has_group = len(self.selected_fragment_ids) > 0
-        self.group_group.setVisible(has_group)
+        self.group_info_widget.setVisible(has_group)
         
         if has_group:
             count = len(self.selected_fragment_ids)
             self.group_info_label.setText(f"{count} fragment{'s' if count != 1 else ''} selected")
-        
-    def update_group_controls(self):
-        """Update group operation controls"""
-        has_group = len(self.selected_fragment_ids) > 0
-        self.group_group.setVisible(has_group)
-        
-        if has_group:
-            count = len(self.selected_fragment_ids)
-            self.group_info_label.setText(f"{count} fragment{'s' if count != 1 else ''} selected")
+            
+        # Update the main controls to reflect the current mode
+        self.update_controls()
         
     def update_transform_button_states(self):
         """Update the visual state of transform buttons"""
@@ -465,18 +371,63 @@ class ControlPanel(QWidget):
         else:
             self.flip_v_btn.setStyleSheet("")
             
+    # Event handlers that work for both individual and group modes
+    def on_rotate_ccw_clicked(self):
+        """Handle counter-clockwise rotation"""
+        if self.selected_fragment_ids:
+            self.group_transform_requested.emit(self.selected_fragment_ids, 'rotate_ccw', None)
+        elif self.current_fragment:
+            self.transform_requested.emit(self.current_fragment.id, 'rotate_ccw', None)
+            
+    def on_rotate_cw_clicked(self):
+        """Handle clockwise rotation"""
+        if self.selected_fragment_ids:
+            self.group_transform_requested.emit(self.selected_fragment_ids, 'rotate_cw', None)
+        elif self.current_fragment:
+            self.transform_requested.emit(self.current_fragment.id, 'rotate_cw', None)
+            
+    def on_angle_button_clicked(self, angle: float):
+        """Handle angle button clicks"""
+        if self.selected_fragment_ids:
+            self.group_transform_requested.emit(self.selected_fragment_ids, 'rotate_angle', angle)
+        elif self.current_fragment:
+            self.transform_requested.emit(self.current_fragment.id, 'rotate_angle', angle)
+            
+    def on_flip_horizontal_clicked(self):
+        """Handle horizontal flip"""
+        if self.selected_fragment_ids:
+            self.group_transform_requested.emit(self.selected_fragment_ids, 'flip_horizontal', None)
+        elif self.current_fragment:
+            self.transform_requested.emit(self.current_fragment.id, 'flip_horizontal', None)
+            
+    def on_flip_vertical_clicked(self):
+        """Handle vertical flip"""
+        if self.selected_fragment_ids:
+            self.group_transform_requested.emit(self.selected_fragment_ids, 'flip_vertical', None)
+        elif self.current_fragment:
+            self.transform_requested.emit(self.current_fragment.id, 'flip_vertical', None)
+            
+    def on_translate_clicked(self, dx: float, dy: float):
+        """Handle translation button clicks"""
+        if self.selected_fragment_ids:
+            self.group_transform_requested.emit(self.selected_fragment_ids, 'translate', (dx, dy))
+        elif self.current_fragment:
+            self.transform_requested.emit(self.current_fragment.id, 'translate', (dx, dy))
+            
+    def on_center_clicked(self):
+        """Handle center button click"""
+        if self.current_fragment:  # Only works for individual fragments
+            self.transform_requested.emit(self.current_fragment.id, 'translate', (0, 0))
+            
     def request_transform(self, transform_type: str, value=None):
-        """Request a transformation for the current fragment"""
-        if self.current_fragment:
+        """Request a transformation for the current fragment (legacy method)"""
+        if self.selected_fragment_ids:
+            self.group_transform_requested.emit(self.selected_fragment_ids, transform_type, value)
+        elif self.current_fragment:
             self.transform_requested.emit(self.current_fragment.id, transform_type, value)
             
     def request_group_transform(self, transform_type: str, value=None):
-        """Request a transformation for the selected group"""
-        if self.selected_fragment_ids:
-            self.group_transform_requested.emit(self.selected_fragment_ids, transform_type, value)
-            
-    def request_group_transform(self, transform_type: str, value=None):
-        """Request a transformation for the selected group"""
+        """Request a transformation for the selected group (legacy method)"""
         if self.selected_fragment_ids:
             self.group_transform_requested.emit(self.selected_fragment_ids, transform_type, value)
             
@@ -508,7 +459,7 @@ class ControlPanel(QWidget):
             
     def on_angle_changed(self):
         """Handle angle spinbox changes"""
-        if self.current_fragment:
+        if self.current_fragment and not self.selected_fragment_ids:  # Only for individual fragments
             new_angle = self.angle_spinbox.value()
             self.request_transform('set_rotation', new_angle)
             
