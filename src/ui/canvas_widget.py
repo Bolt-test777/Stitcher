@@ -746,3 +746,148 @@ class CanvasWidget(QWidget):
         """Force refresh of all fragments"""
         self.clear_cache()
         self.update()
+        
+    def apply_group_transform(self, fragment_ids: List[str], transform_type: str, value=None):
+        """Apply transformation to a group of fragments"""
+        if transform_type == 'rotate_cw':
+            # Calculate group center
+            center_x, center_y = self.calculate_group_center(fragment_ids)
+            
+            # Rotate each fragment around the group center
+            for fragment_id in fragment_ids:
+                fragment = self.get_fragment_by_id(fragment_id)
+                if fragment:
+                    # Rotate fragment's own rotation
+                    fragment.rotation = (fragment.rotation + 90) % 360.0
+                    fragment.invalidate_cache()
+                    
+                    # Rotate position around group center
+                    dx = fragment.x - center_x
+                    dy = fragment.y - center_y
+                    
+                    # 90-degree rotation: (x, y) -> (-y, x)
+                    new_dx = -dy
+                    new_dy = dx
+                    
+                    fragment.x = center_x + new_dx
+                    fragment.y = center_y + new_dy
+                    
+        elif transform_type == 'rotate_ccw':
+            # Calculate group center
+            center_x, center_y = self.calculate_group_center(fragment_ids)
+            
+            # Rotate each fragment around the group center
+            for fragment_id in fragment_ids:
+                fragment = self.get_fragment_by_id(fragment_id)
+                if fragment:
+                    # Rotate fragment's own rotation
+                    fragment.rotation = (fragment.rotation - 90) % 360.0
+                    fragment.invalidate_cache()
+                    
+                    # Rotate position around group center
+                    dx = fragment.x - center_x
+                    dy = fragment.y - center_y
+                    
+                    # -90-degree rotation: (x, y) -> (y, -x)
+                    new_dx = dy
+                    new_dy = -dx
+                    
+                    fragment.x = center_x + new_dx
+                    fragment.y = center_y + new_dy
+                    
+        elif transform_type == 'rotate_angle':
+            # Calculate group center
+            center_x, center_y = self.calculate_group_center(fragment_ids)
+            angle = value
+            
+            # Rotate each fragment around the group center
+            for fragment_id in fragment_ids:
+                fragment = self.get_fragment_by_id(fragment_id)
+                if fragment:
+                    # Rotate fragment's own rotation
+                    fragment.rotation = (fragment.rotation + angle) % 360.0
+                    fragment.invalidate_cache()
+                    
+                    # Rotate position around group center
+                    dx = fragment.x - center_x
+                    dy = fragment.y - center_y
+                    
+                    # Arbitrary angle rotation
+                    angle_rad = np.radians(angle)
+                    cos_a = np.cos(angle_rad)
+                    sin_a = np.sin(angle_rad)
+                    
+                    new_dx = dx * cos_a - dy * sin_a
+                    new_dy = dx * sin_a + dy * cos_a
+                    
+                    fragment.x = center_x + new_dx
+                    fragment.y = center_y + new_dy
+                    
+        elif transform_type == 'flip_horizontal':
+            # Calculate group center
+            center_x, center_y = self.calculate_group_center(fragment_ids)
+            
+            for fragment_id in fragment_ids:
+                fragment = self.get_fragment_by_id(fragment_id)
+                if fragment:
+                    # Flip fragment itself
+                    fragment.flip_horizontal = not fragment.flip_horizontal
+                    fragment.invalidate_cache()
+                    
+                    # Mirror position around group center
+                    dx = fragment.x - center_x
+                    fragment.x = center_x - dx
+                    
+        elif transform_type == 'flip_vertical':
+            # Calculate group center
+            center_x, center_y = self.calculate_group_center(fragment_ids)
+            
+            for fragment_id in fragment_ids:
+                fragment = self.get_fragment_by_id(fragment_id)
+                if fragment:
+                    # Flip fragment itself
+                    fragment.flip_vertical = not fragment.flip_vertical
+                    fragment.invalidate_cache()
+                    
+                    # Mirror position around group center
+                    dy = fragment.y - center_y
+                    fragment.y = center_y - dy
+                    
+        elif transform_type == 'translate':
+            dx, dy = value
+            for fragment_id in fragment_ids:
+                fragment = self.get_fragment_by_id(fragment_id)
+                if fragment:
+                    fragment.x += dx
+                    fragment.y += dy
+                    
+        # Mark all fragments as dirty and update immediately
+        for fragment_id in fragment_ids:
+            self.dirty_fragments.add(fragment_id)
+            
+        self.schedule_render(fast=True)
+        
+    def calculate_group_center(self, fragment_ids: List[str]) -> Tuple[float, float]:
+        """Calculate the center point of a group of fragments"""
+        if not fragment_ids:
+            return (0.0, 0.0)
+            
+        total_x = 0.0
+        total_y = 0.0
+        count = 0
+        
+        for fragment_id in fragment_ids:
+            fragment = self.get_fragment_by_id(fragment_id)
+            if fragment:
+                bbox = fragment.get_bounding_box()
+                # Use center of fragment
+                center_x = bbox[0] + bbox[2] / 2
+                center_y = bbox[1] + bbox[3] / 2
+                total_x += center_x
+                total_y += center_y
+                count += 1
+                
+        if count > 0:
+            return (total_x / count, total_y / count)
+        else:
+            return (0.0, 0.0)

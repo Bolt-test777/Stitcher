@@ -354,163 +354,25 @@ class MainWindow(QMainWindow):
         
     def apply_group_transform(self, fragment_ids: List[str], transform_type: str, value=None):
         """Apply transformation to a group of fragments"""
-        if transform_type == 'rotate_cw':
-            # Calculate group center
-            center_x, center_y = self.calculate_group_center(fragment_ids)
-            
-            # Rotate each fragment around the group center
-            for fragment_id in fragment_ids:
-                fragment = self.fragment_manager.get_fragment(fragment_id)
-                if fragment:
-                    # Rotate fragment's own rotation
-                    self.fragment_manager.rotate_fragment(fragment_id, 90)
-                    
-                    # Rotate position around group center
-                    dx = fragment.x - center_x
-                    dy = fragment.y - center_y
-                    
-                    # 90-degree rotation: (x, y) -> (-y, x)
-                    new_dx = -dy
-                    new_dy = dx
-                    
-                    new_x = center_x + new_dx
-                    new_y = center_y + new_dy
-                    
-                    self.fragment_manager.set_fragment_position(fragment_id, new_x, new_y)
-                    
-        elif transform_type == 'rotate_ccw':
-            # Calculate group center
-            center_x, center_y = self.calculate_group_center(fragment_ids)
-            
-            # Rotate each fragment around the group center
-            for fragment_id in fragment_ids:
-                fragment = self.fragment_manager.get_fragment(fragment_id)
-                if fragment:
-                    # Rotate fragment's own rotation
-                    self.fragment_manager.rotate_fragment(fragment_id, -90)
-                    
-                    # Rotate position around group center
-                    dx = fragment.x - center_x
-                    dy = fragment.y - center_y
-                    
-                    # -90-degree rotation: (x, y) -> (y, -x)
-                    new_dx = dy
-                    new_dy = -dx
-                    
-                    new_x = center_x + new_dx
-                    new_y = center_y + new_dy
-                    
-                    self.fragment_manager.set_fragment_position(fragment_id, new_x, new_y)
-                    
-        elif transform_type == 'translate':
-            dx, dy = value
-            for fragment_id in fragment_ids:
-                self.fragment_manager.translate_fragment(fragment_id, dx, dy)
-                
-    def calculate_group_center(self, fragment_ids: List[str]) -> Tuple[float, float]:
-        """Calculate the center point of a group of fragments"""
-        if not fragment_ids:
-            return (0.0, 0.0)
-            
-        total_x = 0.0
-        total_y = 0.0
-        count = 0
+        # Delegate to canvas widget for immediate rendering
+        self.canvas_widget.apply_group_transform(fragment_ids, transform_type, value)
         
+        # Update fragment manager state
         for fragment_id in fragment_ids:
-            fragment = self.fragment_manager.get_fragment(fragment_id)
+            fragment = self.canvas_widget.get_fragment_by_id(fragment_id)
             if fragment:
-                bbox = fragment.get_bounding_box()
-                # Use center of fragment
-                center_x = bbox[0] + bbox[2] / 2
-                center_y = bbox[1] + bbox[3] / 2
-                total_x += center_x
-                total_y += center_y
-                count += 1
-                
-        if count > 0:
-            return (total_x / count, total_y / count)
-        else:
-            return (0.0, 0.0)
+                # Sync the fragment manager with canvas changes
+                manager_fragment = self.fragment_manager.get_fragment(fragment_id)
+                if manager_fragment:
+                    manager_fragment.x = fragment.x
+                    manager_fragment.y = fragment.y
+                    manager_fragment.rotation = fragment.rotation
+                    manager_fragment.flip_horizontal = fragment.flip_horizontal
+                    manager_fragment.flip_vertical = fragment.flip_vertical
+                    manager_fragment.invalidate_cache()
         
-    def apply_group_transform(self, fragment_ids: List[str], transform_type: str, value=None):
-        """Apply transformation to a group of fragments"""
-        if transform_type == 'rotate_cw':
-            # Calculate group center
-            center_x, center_y = self.calculate_group_center(fragment_ids)
-            
-            # Rotate each fragment around the group center
-            for fragment_id in fragment_ids:
-                fragment = self.fragment_manager.get_fragment(fragment_id)
-                if fragment:
-                    # Rotate fragment's own rotation
-                    self.fragment_manager.rotate_fragment(fragment_id, 90)
-                    
-                    # Rotate position around group center
-                    dx = fragment.x - center_x
-                    dy = fragment.y - center_y
-                    
-                    # 90-degree rotation: (x, y) -> (-y, x)
-                    new_dx = -dy
-                    new_dy = dx
-                    
-                    new_x = center_x + new_dx
-                    new_y = center_y + new_dy
-                    
-                    self.fragment_manager.set_fragment_position(fragment_id, new_x, new_y)
-                    
-        elif transform_type == 'rotate_ccw':
-            # Calculate group center
-            center_x, center_y = self.calculate_group_center(fragment_ids)
-            
-            # Rotate each fragment around the group center
-            for fragment_id in fragment_ids:
-                fragment = self.fragment_manager.get_fragment(fragment_id)
-                if fragment:
-                    # Rotate fragment's own rotation
-                    self.fragment_manager.rotate_fragment(fragment_id, -90)
-                    
-                    # Rotate position around group center
-                    dx = fragment.x - center_x
-                    dy = fragment.y - center_y
-                    
-                    # -90-degree rotation: (x, y) -> (y, -x)
-                    new_dx = dy
-                    new_dy = -dx
-                    
-                    new_x = center_x + new_dx
-                    new_y = center_y + new_dy
-                    
-                    self.fragment_manager.set_fragment_position(fragment_id, new_x, new_y)
-                    
-        elif transform_type == 'translate':
-            dx, dy = value
-            for fragment_id in fragment_ids:
-                self.fragment_manager.translate_fragment(fragment_id, dx, dy)
-                
-    def calculate_group_center(self, fragment_ids: List[str]) -> Tuple[float, float]:
-        """Calculate the center point of a group of fragments"""
-        if not fragment_ids:
-            return (0.0, 0.0)
-            
-        total_x = 0.0
-        total_y = 0.0
-        count = 0
-        
-        for fragment_id in fragment_ids:
-            fragment = self.fragment_manager.get_fragment(fragment_id)
-            if fragment:
-                bbox = fragment.get_bounding_box()
-                # Use center of fragment
-                center_x = bbox[0] + bbox[2] / 2
-                center_y = bbox[1] + bbox[3] / 2
-                total_x += center_x
-                total_y += center_y
-                count += 1
-                
-        if count > 0:
-            return (total_x / count, total_y / count)
-        else:
-            return (0.0, 0.0)
+        # Emit fragments changed to update UI
+        self.fragment_manager.fragments_changed.emit()
         
     def perform_stitching(self):
         """Perform rigid stitching refinement"""
