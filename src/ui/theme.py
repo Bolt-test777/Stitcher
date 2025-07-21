@@ -188,6 +188,30 @@ def apply_dark_theme(app: QApplication):
     QSplitter::handle:vertical {
         height: 2px;
     }
+    
+    QToolButton {
+        background-color: #4d4d4d;
+        border: 1px solid #666;
+        padding: 6px;
+        border-radius: 3px;
+        color: #dcdcdc;
+        min-width: 30px;
+        min-height: 30px;
+    }
+    
+    QToolButton:hover {
+        background-color: #5d5d5d;
+        border-color: #777;
+    }
+    
+    QToolButton:checked {
+        background-color: #4682b4;
+        border-color: #5a9bd4;
+    }
+    
+    QToolButton:pressed {
+        background-color: #3d3d3d;
+    }
     """
     
     app.setStyleSheet(stylesheet)

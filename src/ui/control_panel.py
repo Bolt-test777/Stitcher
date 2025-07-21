@@ -5,7 +5,7 @@ Control panel for fragment manipulation
 from typing import Optional
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, 
                             QPushButton, QLabel, QSpinBox, QDoubleSpinBox,
-                            QSlider, QCheckBox, QGridLayout)
+                            QSlider, QCheckBox, QGridLayout, QFrame)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QIcon
 
@@ -16,10 +16,14 @@ class ControlPanel(QWidget):
     
     transform_requested = pyqtSignal(str, str, object)  # fragment_id, transform_type, value
     reset_transform_requested = pyqtSignal(str)  # fragment_id
+    group_transform_requested = pyqtSignal(list, str, object)  # fragment_ids, transform_type, value
+    translation_step_changed = pyqtSignal(float)  # step_value
     
     def __init__(self):
         super().__init__()
         self.current_fragment: Optional[Fragment] = None
+        self.selected_fragment_ids: List[str] = []
+        self.translation_step = 10.0  # Default step size
         self.setup_ui()
         self.update_controls()
         
@@ -47,6 +51,12 @@ class ControlPanel(QWidget):
         self.display_group = QGroupBox("Display")
         self.setup_display_group()
         layout.addWidget(self.display_group)
+        
+        # Group operations (initially hidden)
+        self.group_group = QGroupBox("Group Operations")
+        self.setup_group_operations()
+        layout.addWidget(self.group_group)
+        self.group_group.setVisible(False)
         
         # Add stretch to push everything to top
         layout.addStretch()
@@ -155,14 +165,34 @@ class ControlPanel(QWidget):
         # Translation buttons
         translation_layout = QGridLayout()
         
+        # Translation step control
+        step_layout = QHBoxLayout()
+        step_layout.addWidget(QLabel("Step:"))
+        self.step_spinbox = QDoubleSpinBox()
+        self.step_spinbox.setRange(0.1, 1000.0)
+        self.step_spinbox.setValue(self.translation_step)
+        self.step_spinbox.setDecimals(1)
+        self.step_spinbox.setSuffix(" px")
+        self.step_spinbox.valueChanged.connect(self.on_translation_step_changed)
+        step_layout.addWidget(self.step_spinbox)
+        step_layout.addStretch()
+        
+        layout.addLayout(step_layout, 3, 0, 1, 2)
+        
+        # Separator line
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        layout.addWidget(separator, 4, 0, 1, 2)
+        
         # Up
         up_btn = QPushButton("↑")
-        up_btn.clicked.connect(lambda: self.request_transform('translate', (0, -10)))
+        up_btn.clicked.connect(lambda: self.request_transform('translate', (0, -self.translation_step)))
         translation_layout.addWidget(up_btn, 0, 1)
         
         # Left, Center, Right
         left_btn = QPushButton("←")
-        left_btn.clicked.connect(lambda: self.request_transform('translate', (-10, 0)))
+        left_btn.clicked.connect(lambda: self.request_transform('translate', (-self.translation_step, 0)))
         translation_layout.addWidget(left_btn, 1, 0)
         
         center_btn = QPushButton("⌂")
@@ -171,15 +201,15 @@ class ControlPanel(QWidget):
         translation_layout.addWidget(center_btn, 1, 1)
         
         right_btn = QPushButton("→")
-        right_btn.clicked.connect(lambda: self.request_transform('translate', (10, 0)))
+        right_btn.clicked.connect(lambda: self.request_transform('translate', (self.translation_step, 0)))
         translation_layout.addWidget(right_btn, 1, 2)
         
         # Down
         down_btn = QPushButton("↓")
-        down_btn.clicked.connect(lambda: self.request_transform('translate', (0, 10)))
+        down_btn.clicked.connect(lambda: self.request_transform('translate', (0, self.translation_step)))
         translation_layout.addWidget(down_btn, 2, 1)
         
-        layout.addLayout(translation_layout, 2, 0, 1, 2)
+        layout.addLayout(translation_layout, 5, 0, 1, 2)
         
     def setup_display_group(self):
         """Setup display controls"""
@@ -206,10 +236,79 @@ class ControlPanel(QWidget):
         
         layout.addLayout(opacity_layout)
         
+    def setup_group_operations(self):
+        """Setup group operation controls"""
+        layout = QVBoxLayout(self.group_group)
+        
+        # Group info
+        self.group_info_label = QLabel("0 fragments selected")
+        self.group_info_label.setStyleSheet("font-weight: bold; color: #ff8c00;")
+        layout.addWidget(self.group_info_label)
+        
+        # Group transformation controls
+        transform_layout = QGridLayout()
+        
+        # Group rotation
+        transform_layout.addWidget(QLabel("Rotate Group:"), 0, 0)
+        
+        group_rotation_layout = QHBoxLayout()
+        self.group_rotate_ccw_btn = QPushButton("↺ 90°")
+        self.group_rotate_ccw_btn.clicked.connect(lambda: self.request_group_transform('rotate_ccw'))
+        group_rotation_layout.addWidget(self.group_rotate_ccw_btn)
+        
+        self.group_rotate_cw_btn = QPushButton("↻ 90°")
+        self.group_rotate_cw_btn.clicked.connect(lambda: self.request_group_transform('rotate_cw'))
+        group_rotation_layout.addWidget(self.group_rotate_cw_btn)
+        
+        transform_layout.addLayout(group_rotation_layout, 0, 1)
+        
+        # Group translation
+        transform_layout.addWidget(QLabel("Move Group:"), 1, 0)
+        
+        group_translation_layout = QGridLayout()
+        
+        # Up
+        group_up_btn = QPushButton("↑")
+        group_up_btn.clicked.connect(lambda: self.request_group_transform('translate', (0, -self.translation_step)))
+        group_translation_layout.addWidget(group_up_btn, 0, 1)
+        
+        # Left, Right
+        group_left_btn = QPushButton("←")
+        group_left_btn.clicked.connect(lambda: self.request_group_transform('translate', (-self.translation_step, 0)))
+        group_translation_layout.addWidget(group_left_btn, 1, 0)
+        
+        group_right_btn = QPushButton("→")
+        group_right_btn.clicked.connect(lambda: self.request_group_transform('translate', (self.translation_step, 0)))
+        group_translation_layout.addWidget(group_right_btn, 1, 2)
+        
+        # Down
+        group_down_btn = QPushButton("↓")
+        group_down_btn.clicked.connect(lambda: self.request_group_transform('translate', (0, self.translation_step)))
+        group_translation_layout.addWidget(group_down_btn, 2, 1)
+        
+        transform_layout.addLayout(group_translation_layout, 1, 1)
+        
+        layout.addLayout(transform_layout)
+        
+        # Clear selection button
+        self.clear_selection_btn = QPushButton("Clear Group Selection")
+        self.clear_selection_btn.clicked.connect(self.clear_group_selection)
+        layout.addWidget(self.clear_selection_btn)
+        
     def set_selected_fragment(self, fragment: Optional[Fragment]):
         """Set the currently selected fragment"""
         self.current_fragment = fragment
         self.update_controls()
+        
+    def set_selected_fragments(self, fragment_ids: List[str]):
+        """Set the group selected fragments"""
+        self.selected_fragment_ids = fragment_ids
+        self.update_group_controls()
+        
+    def clear_group_selection(self):
+        """Clear group selection"""
+        self.selected_fragment_ids.clear()
+        self.update_group_controls()
         
     def update_controls(self):
         """Update control states based on current fragment"""
@@ -259,6 +358,15 @@ class ControlPanel(QWidget):
         # Update transform button states
         self.update_transform_button_states()
         
+    def update_group_controls(self):
+        """Update group operation controls"""
+        has_group = len(self.selected_fragment_ids) > 0
+        self.group_group.setVisible(has_group)
+        
+        if has_group:
+            count = len(self.selected_fragment_ids)
+            self.group_info_label.setText(f"{count} fragment{'s' if count != 1 else ''} selected")
+        
     def update_transform_button_states(self):
         """Update the visual state of transform buttons"""
         if not self.current_fragment:
@@ -281,6 +389,11 @@ class ControlPanel(QWidget):
         """Request a transformation for the current fragment"""
         if self.current_fragment:
             self.transform_requested.emit(self.current_fragment.id, transform_type, value)
+            
+    def request_group_transform(self, transform_type: str, value=None):
+        """Request a transformation for the selected group"""
+        if self.selected_fragment_ids:
+            self.group_transform_requested.emit(self.selected_fragment_ids, transform_type, value)
             
     def request_reset(self):
         """Request reset of current fragment transforms"""
@@ -313,3 +426,8 @@ class ControlPanel(QWidget):
         if self.current_fragment:
             new_angle = self.angle_spinbox.value()
             self.request_transform('set_rotation', new_angle)
+            
+    def on_translation_step_changed(self):
+        """Handle translation step changes"""
+        self.translation_step = self.step_spinbox.value()
+        self.translation_step_changed.emit(self.translation_step)

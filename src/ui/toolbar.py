@@ -3,7 +3,7 @@ Main toolbar widget
 """
 
 from PyQt6.QtWidgets import (QWidget, QHBoxLayout, QPushButton, QLabel, 
-                            QFrame, QSpacerItem, QSizePolicy)
+                            QFrame, QSpacerItem, QSizePolicy, QToolButton, QButtonGroup)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QIcon
 
@@ -15,6 +15,7 @@ class ToolbarWidget(QWidget):
     stitch_requested = pyqtSignal()
     reset_requested = pyqtSignal()
     delete_requested = pyqtSignal()
+    selection_mode_changed = pyqtSignal(bool)  # selection_mode_enabled
     
     def __init__(self):
         super().__init__()
@@ -33,9 +34,34 @@ class ToolbarWidget(QWidget):
         layout.addWidget(self.load_btn)
         
         # Separator
+        separator0 = QFrame()
+        separator0.setFrameShape(QFrame.Shape.VLine)
+        layout.addWidget(separator0)
+        
+        # Selection tools
+        self.selection_group = QButtonGroup(self)
+        
+        self.select_btn = QToolButton()
+        self.select_btn.setText("🖱️")
+        self.select_btn.setToolTip("Normal selection mode")
+        self.select_btn.setCheckable(True)
+        self.select_btn.setChecked(True)
+        self.selection_group.addButton(self.select_btn, 0)
+        layout.addWidget(self.select_btn)
+        
+        self.rect_select_btn = QToolButton()
+        self.rect_select_btn.setText("⬚")
+        self.rect_select_btn.setToolTip("Rectangle selection mode - drag to select multiple fragments")
+        self.rect_select_btn.setCheckable(True)
+        self.selection_group.addButton(self.rect_select_btn, 1)
+        layout.addWidget(self.rect_select_btn)
+        
+        # Connect selection mode signals
+        self.selection_group.idClicked.connect(self.on_selection_mode_changed)
+        
+        # Separator
         separator1 = QFrame()
-        separator1.setFrameShape(QFrame.Shape.VLine) # For a vertical line
-        # Or use: separator1.setFrameShape(QFrame.Shape.HLine) for a horizontal line
+        separator1.setFrameShape(QFrame.Shape.VLine)
         layout.addWidget(separator1)
         
         # Export button
@@ -47,8 +73,8 @@ class ToolbarWidget(QWidget):
         
         # Separator
         separator2 = QFrame()  # Create a QFrame instead of QSeparator
-        separator2.setFrameShape(QFrame.Shape.VLine) # Set its shape to be a Vertical Line
-        separator2.setFrameShadow(QFrame.Shadow.Sunken) # Optional: Adds a visual shadow
+        separator2.setFrameShape(QFrame.Shape.VLine)
+        separator2.setFrameShadow(QFrame.Shadow.Sunken)
         layout.addWidget(separator2)
         
         # Stitch button
@@ -80,6 +106,11 @@ class ToolbarWidget(QWidget):
         self.status_label = QLabel("Ready")
         self.status_label.setStyleSheet("color: #4a90e2; font-weight: bold;")
         layout.addWidget(self.status_label)
+        
+    def on_selection_mode_changed(self, button_id: int):
+        """Handle selection mode changes"""
+        selection_mode = (button_id == 1)  # Rectangle selection is button 1
+        self.selection_mode_changed.emit(selection_mode)
         
     def set_fragment_count(self, count: int):
         """Update the fragment count display"""
